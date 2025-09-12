@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Management</title>
+</head>
+<body>
+    <h1>Stock Management</h1>
+    <a href="{{ url_for('login') }}">Logout</a>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <form method="POST">
+        <label>Name: <input type="text" name="name" required></label><br>
+        <label>Price: <input type="number" name="price" step="0.01" required></label><br>
+        <label>Quantity: <input type="number" name="quantity" required></label><br>
+        <input type="submit" value="Add Item">
+    </form>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+        </tr>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.price }}</td>
+            <td>{{ item.quantity }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
