@@ -35,4 +35,10 @@ The application is **live and running** on Render! Access it here:
 - **GUI**: Built with Tkinter (desktop version); web version uses HTML forms with Flask routes.
 
 ## Installation (Local Desktop Version - Tkinter)
-1. Clone the repository:
+1. Clone the repository: 
+git clone https://github.com/payalchaudhari8443/E-Commerce-Inventory-Manager.git
+cd E-Commerce-Inventory-Manager
+2. Set up MySQL database:
+- Install MySQL and create `inventory_db` with table `items` (columns: `item_id`, `name`, `price`, `quantity`).
+- Update `Project2(code).py` with your MySQL credentials (host="localhost", user="root", password="your_password").
+3. Run the app:
