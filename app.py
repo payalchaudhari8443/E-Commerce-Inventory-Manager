@@ -5,7 +5,7 @@ import logging
 import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventory.db'  # Default for local testing
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///inventory.db')  # Default to SQLite locally
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'supersecretkey'  # Replace with a secure random key in production
 db = SQLAlchemy(app)
@@ -48,19 +48,18 @@ def stock_management():
         flash('Item added successfully!')
     return render_template('stock_management.html', items=items)
 
+# Initialize database and admin user on app startup
+with app.app_context():
+    db.create_all()  # Create tables
+    app.logger.info("Checking for admin user")
+    if not User.query.filter_by(username='admin').first():
+        app.logger.info("Admin user not found, creating...")
+        hashed = generate_password_hash('admin')
+        db.session.add(User(username='admin', password_hash=hashed))
+        db.session.commit()
+        app.logger.info("Admin user created")
+    else:
+        app.logger.info("Admin user already exists")
+
 if __name__ == '__main__':
-    if 'DATABASE_URL' in os.environ:
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
-        app.logger.info(f"Using DATABASE_URL: {os.environ['DATABASE_URL']}")
-    with app.app_context():
-        db.create_all()  # Create tables if they don't exist
-        app.logger.info("Checking for admin user")
-        if not User.query.filter_by(username='admin').first():
-            app.logger.info("Admin user not found, creating...")
-            hashed = generate_password_hash('admin')
-            db.session.add(User(username='admin', password_hash=hashed))
-            db.session.commit()
-            app.logger.info("Admin user created")
-        else:
-            app.logger.info("Admin user already exists")
     app.run(host='0.0.0.0', port=5000, debug=True)
