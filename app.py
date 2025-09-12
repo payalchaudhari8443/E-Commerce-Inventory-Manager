@@ -1,22 +1,38 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+import logging
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-import os
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Change for production
-
-# Render Postgres config (set via env vars)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://') if os.environ.get('DATABASE_URL') else 'sqlite:///inventory.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventory.db'  # Default fallback
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
 
+logging.basicConfig(level=logging.INFO)
+app.logger.setLevel(logging.INFO)
+
+if __name__ == '__main__':
+    import os
+    if 'DATABASE_URL' in os.environ:
+        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+        app.logger.info(f"Using DATABASE_URL: {os.environ['DATABASE_URL']}")
+    with app.app_context():
+        db.create_all()  # Ensure tables are created
+        app.logger.info("Checking for admin user")
+        if not User.query.filter_by(username='admin').first():
+            app.logger.info("Admin user not found, creating...")
+            hashed = generate_password_hash('admin')
+            db.session.add(User(username='admin', password_hash=hashed))
+            db.session.commit()
+            app.logger.info("Admin user created")
+        else:
+            app.logger.info("Admin user already exists")
+    app.run(host='0.0.0.0', port=5000, debug=True)
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
