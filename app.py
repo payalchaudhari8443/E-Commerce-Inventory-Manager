@@ -1,13 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-import logging
 import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///inventory.db')  # Default to SQLite locally
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///inventory.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'supersecretkey'  # Replace with a secure random key in production
+app.secret_key = 'supersecretkey'  # Replace with a secure random key
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -39,27 +38,35 @@ def stock_management():
         return redirect(url_for('login'))
     items = Item.query.all()
     if request.method == 'POST':
-        name = request.form['name']
-        price = float(request.form['price'])
-        quantity = int(request.form['quantity'])
-        new_item = Item(name=name, price=price, quantity=quantity)
-        db.session.add(new_item)
-        db.session.commit()
-        flash('Item added successfully!')
+        if 'delete_id' in request.form:
+            item = Item.query.get_or_404(request.form['delete_id'])
+            db.session.delete(item)
+            db.session.commit()
+            flash('Item deleted successfully!')
+        elif 'update_id' in request.form:
+            item = Item.query.get_or_404(request.form['update_id'])
+            item.name = request.form['name']
+            item.price = float(request.form['price'])
+            item.quantity = int(request.form['quantity'])
+            db.session.commit()
+            flash('Item updated successfully!')
+        else:
+            name = request.form['name']
+            price = float(request.form['price'])
+            quantity = int(request.form['quantity'])
+            new_item = Item(name=name, price=price, quantity=quantity)
+            db.session.add(new_item)
+            db.session.commit()
+            flash('Item added successfully!')
+        return redirect(url_for('stock_management'))  # Force page reload
     return render_template('stock_management.html', items=items)
 
-# Initialize database and admin user on app startup
 with app.app_context():
-    db.create_all()  # Create tables
-    app.logger.info("Checking for admin user")
+    db.create_all()
     if not User.query.filter_by(username='admin').first():
-        app.logger.info("Admin user not found, creating...")
         hashed = generate_password_hash('admin')
         db.session.add(User(username='admin', password_hash=hashed))
         db.session.commit()
-        app.logger.info("Admin user created")
-    else:
-        app.logger.info("Admin user already exists")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
